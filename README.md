@@ -1,0 +1,1 @@
+# code for raspberry-pi smart home
