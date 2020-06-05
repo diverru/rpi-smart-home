@@ -1,0 +1,41 @@
+version: '3.7'
+services:
+# ---------------------------------------
+  graphite:
+    restart: always
+    build: ./docker/graphite
+    hostname: graphite
+    logging:
+      driver: "json-file"
+      options:
+        max-size: 50m
+        max-file: "2"
+    volumes:
+      - ./graphite_whisper:/opt/graphite/storage/whisper
+      - ./graphite_conf:/opt/graphite/conf
+    ports:
+      - "80:80"
+      - "2003-2004:2003-2004"
+      - "2023-2024:2023-2024"
+      - "8125:8125/udp"
+      - "8126:8126"
+# ---------------------------------------
+  grafana:
+    restart: always
+    env_file: ./secret.env
+    build: ./docker/grafana
+    image: grafana/grafana:6.5.1-ubuntu
+    hostname: grafana
+    volumes:
+      - ./grafana-storage:/var/lib/grafana
+    logging:
+      driver: "json-file"
+      options:
+        max-size: 50m
+        max-file: "2"
+    ports:
+      - "${GF_PORT}:3000"
+    expose:
+      - "${GF_PORT}"
+    links:
+      - graphite:graphite
