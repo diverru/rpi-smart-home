@@ -23,7 +23,6 @@ services:
   grafana:
     restart: always
     env_file: ./secret.env
-    build: ./docker/grafana
     image: grafana/grafana:6.5.1-ubuntu
     hostname: grafana
     volumes:
