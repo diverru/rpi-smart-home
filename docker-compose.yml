@@ -22,7 +22,7 @@ services:
 # ---------------------------------------
   grafana:
     restart: always
-    env_file: ./secret.env
+    env_file: ./.env
     image: grafana/grafana:6.5.1-ubuntu
     hostname: grafana
     volumes:
