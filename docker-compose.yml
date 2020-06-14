@@ -2,7 +2,8 @@ version: '3.7'
 services:
 # ---------------------------------------
   graphite:
-    restart: always
+    container_name: graphite
+    restart: unless-stopped
     build: ./docker/graphite
     hostname: graphite
     logging:
@@ -11,30 +12,63 @@ services:
         max-size: 50m
         max-file: "2"
     volumes:
-      - ./graphite_whisper:/opt/graphite/storage/whisper
-      - ./graphite_conf:/opt/graphite/conf
+      - ./var/graphite_whisper:/opt/graphite/storage/whisper
+      - ./var/graphite_conf:/opt/graphite/conf
+    expose:
+      - "80"
     ports:
-      - "80:80"
-      - "2003-2004:2003-2004"
-      - "2023-2024:2023-2024"
-      - "8125:8125/udp"
-      - "8126:8126"
+      - "${GRAPHITE_PORT}:8125/udp"
 # ---------------------------------------
   grafana:
-    restart: always
+    container_name: grafana
+    restart: unless-stopped
     env_file: ./.env
     image: grafana/grafana:6.5.1-ubuntu
     hostname: grafana
     volumes:
-      - ./grafana-storage:/var/lib/grafana
+      - ./var/grafana-storage:/var/lib/grafana
     logging:
       driver: "json-file"
       options:
         max-size: 50m
         max-file: "2"
-    ports:
-      - "${GF_PORT}:3000"
-    expose:
-      - "${GF_PORT}"
+    user: "root"
     links:
       - graphite:graphite
+# -----------------------------------
+  nginx:
+    container_name: nginx
+    restart: unless-stopped
+    build:
+      context: ./docker
+      dockerfile: nginx/Dockerfile
+      args:
+        DOMAIN: $DOMAIN
+    logging:
+      driver: "json-file"
+      options:
+        max-size: 100m
+        max-file: "10"
+    ports:
+      - "80:80"
+      - "443:443"
+    expose:
+      - "80"
+      - "443"
+    volumes:
+      - ./var/letsencrypt/etc:/etc/letsencrypt
+      - ./var/letsencrypt/dh-param/dhparam.pem:/certs/dhparam.pem
+      - ./var/letsencrypt/site:/usr/share/nginx/html
+      - ./var/logs/nginx:/var/log/nginx
+# -----------------------------------
+  letsencrypt-nginx:
+     container_name: 'letsencrypt-nginx'
+     build:
+       context: ./docker
+       dockerfile: letsencrypt-nginx/Dockerfile
+       args:
+         DOMAIN: $DOMAIN
+     ports:
+       - "80:80"
+     volumes:
+       - ./var/letsencrypt/site:/usr/share/nginx/html
